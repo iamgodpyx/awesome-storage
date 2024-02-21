@@ -1,4 +1,4 @@
-# awesome-storage：前端存储管理方案
+# awesome-storage-manage：前端存储管理方案
 
 ## 一、项目当前痛点
 
@@ -11,7 +11,7 @@
 需要统一存取的方法，减少后续维护成本
 
 ```
-import AwesomeStorage from '@novel/awesome-storage';
+import AwesomeStorage from 'awesome-storage-manage';
 
 // 白名单
 const whitelist = [
@@ -102,7 +102,7 @@ whitelistRegExps?: RegExp[];
 -   可传入构造函数localStorage or sessionStorage, 默认是 localStorage
 
 ```
-import AwesomeStorage from '@novel/awesome-storage';
+import AwesomeStorage from 'awesome-storage-manage';
 
 // 白名单
 const whitelist = [
@@ -218,7 +218,7 @@ getItem(key: string, defaultValue?: any) {
 ## 三、API
 
 ```javascript
-import AwesomeStorage from '@novel/awesome-storage';
+import AwesomeStorage from 'awesome-storage-manage';
 
 // 白名单
 const whitelist = [
