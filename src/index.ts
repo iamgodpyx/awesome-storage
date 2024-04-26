@@ -125,7 +125,7 @@ export default class SerialStorage implements AwesomeStorageProps {
     whitelist?: string[],
     whitelistRegExps?: RegExp[],
     cleanCycle?: number,
-    workspace?: string;
+    workspace?: string,
     originTarget?: Storage,
   ) {
     this.hasConvert = false;
@@ -240,7 +240,9 @@ export default class SerialStorage implements AwesomeStorageProps {
   private normalize() {
     const savedList = this.getNormalizedItems();
     savedList.forEach(([key, value]) =>
-      this.setItem(`${this.workspace}_${key}`, value, { schedule: AwesomeStorageSchedule.small }),
+      this.setItem(`${this.workspace}_${key}`, value, {
+        schedule: AwesomeStorageSchedule.small,
+      }),
     );
     // 存转化标识key
     this.setItem(convertedKey, true);
@@ -277,7 +279,10 @@ export default class SerialStorage implements AwesomeStorageProps {
 
   /** [私有方法] 存储 */
   private save(key: string, value: AwesomeStorageItem) {
-    this.originTarget.setItem(`${this.workspace}_${key}`, JSON.stringify(value));
+    this.originTarget.setItem(
+      `${this.workspace}_${key}`,
+      JSON.stringify(value),
+    );
   }
 
   /** [私有方法] 获取已格式化的值列表 */
@@ -299,7 +304,7 @@ export default class SerialStorage implements AwesomeStorageProps {
       // const isBefore = currentDate.getTime() < targetExpireDate.getTime();
 
       // return dayjs().add(-1, 'hour').isBefore(dayjs.unix(target.expire));
-      return currentDate.getTime() < targetExpireDate.getTime() ? false : true;
+      return !(currentDate.getTime() < targetExpireDate.getTime());
     }
     return true;
   }
