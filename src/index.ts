@@ -68,7 +68,7 @@ interface AwesomeStorageItem {
  */
 interface SetAwesomeStorageOption {
   absolute?: number;
-  relative?: string; // 15day
+  relative?: string; // 15day/month/week/hour/minute/second/year
   schedule?: AwesomeStorageSchedule;
 }
 
@@ -118,10 +118,14 @@ export default class SerialStorage implements AwesomeStorageProps {
   /** 项目启动时清除过期storage的周期，默认为10天 */
   cleanCycle: number;
 
+  /** 项目的前缀标识，针对同一域名下不同项目使用同一key的情况，可以加上前缀来区别 */
+  workspace: string;
+
   constructor(
     whitelist?: string[],
     whitelistRegExps?: RegExp[],
     cleanCycle?: number,
+    workspace?: string;
     originTarget?: Storage,
   ) {
     this.hasConvert = false;
@@ -131,22 +135,23 @@ export default class SerialStorage implements AwesomeStorageProps {
       : [convertedKey, cleanCycleKey];
     this.cleanCycle = cleanCycle || 10;
     this.whitelistRegExps = whitelistRegExps ?? [];
+    this.workspace = workspace ?? '';
   }
 
   /** 读取 key 对应的值，读出的值已经过序列化 */
   getItem(key: string, defaultValue?: any) {
-    const data = this.originTarget.getItem(key);
+    const data = this.originTarget.getItem(`${this.workspace}_${key}`);
     const normalized = this.parse(data);
     // 仅用一次的值，用完销毁
     if (normalized?.once) {
-      this.removeItem(key);
+      this.removeItem(`${this.workspace}_${key}`);
     }
     // 续期再存
     if (normalized?.schedule) {
       const currentDate = new Date();
       currentDate.setMonth(currentDate.getMonth() + normalized.schedule);
       const unixTimestamp = Math.floor(currentDate.getTime() / 1000);
-      this.save(key, {
+      this.save(`${this.workspace}_${key}`, {
         ...normalized,
         // expire: dayjs().add(normalized.schedule, 'month').unix(),
         expire: unixTimestamp,
@@ -194,17 +199,17 @@ export default class SerialStorage implements AwesomeStorageProps {
       target.schedule = schedule;
     }
 
-    this.save(key, target);
+    this.save(`${this.workspace}_${key}`, target);
   }
 
   /** 设置 key 及对应的值，该值一旦读取立即销毁 */
   setItemOnce(key: string, value: any) {
-    this.save(key, { value, once: true });
+    this.save(`${this.workspace}_${key}`, { value, once: true });
   }
 
   /** 移除 key 及对应的值 */
   removeItem(key: string) {
-    this.originTarget.removeItem(key);
+    this.originTarget.removeItem(`${this.workspace}_${key}`);
   }
 
   /** 清空全部存储项 */
@@ -235,7 +240,7 @@ export default class SerialStorage implements AwesomeStorageProps {
   private normalize() {
     const savedList = this.getNormalizedItems();
     savedList.forEach(([key, value]) =>
-      this.setItem(key, value, { schedule: AwesomeStorageSchedule.small }),
+      this.setItem(`${this.workspace}_${key}`, value, { schedule: AwesomeStorageSchedule.small }),
     );
     // 存转化标识key
     this.setItem(convertedKey, true);
@@ -251,7 +256,7 @@ export default class SerialStorage implements AwesomeStorageProps {
     list.forEach(([key, item]) => {
       const normalized = this.parse(item);
       if (!(normalized && this.checkExpire(normalized))) {
-        this.removeItem(key);
+        this.removeItem(`${this.workspace}_${key}`);
       }
     });
   }
@@ -272,7 +277,7 @@ export default class SerialStorage implements AwesomeStorageProps {
 
   /** [私有方法] 存储 */
   private save(key: string, value: AwesomeStorageItem) {
-    this.originTarget.setItem(key, JSON.stringify(value));
+    this.originTarget.setItem(`${this.workspace}_${key}`, JSON.stringify(value));
   }
 
   /** [私有方法] 获取已格式化的值列表 */
@@ -294,7 +299,7 @@ export default class SerialStorage implements AwesomeStorageProps {
       // const isBefore = currentDate.getTime() < targetExpireDate.getTime();
 
       // return dayjs().add(-1, 'hour').isBefore(dayjs.unix(target.expire));
-      return currentDate.getTime() < targetExpireDate.getTime();
+      return currentDate.getTime() < targetExpireDate.getTime() ? false : true;
     }
     return true;
   }

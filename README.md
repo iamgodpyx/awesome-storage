@@ -71,6 +71,42 @@ interface AwesomeStorageItem {
 之前的历史storage存储格式需要转化成规范的形式。
 
 首次运行时，做历史数据转换，后续不再重复处理。
+```
+/** 已转换的标识 */
+const convertedKey = 'awesome_storage_converted';
+
+/** 应用冷启动时初始化项目本地存储 */
+  init() {
+  // 执行一次清理
+  if (
+    this.originTarget.getItem(cleanCycleKey) &&
+    Number(this.originTarget.getItem(cleanCycleKey)) +
+      this.cleanCycle * 24 * 3600 >=
+      Math.floor(new Date().getTime() / 1000)
+  ) {
+    this.clean();
+  }
+  if (this.originTarget.getItem(convertedKey)) {
+    this.hasConvert = true;
+    return;
+  }
+  // 如果未格式化则启动预处理
+  this.normalize();
+}
+
+/** [私有方法] 标准化本地存储 */
+private normalize() {
+  const savedList = this.getNormalizedItems();
+  savedList.forEach(([key, value]) =>
+    this.setItem(`${this.workspace}_${key}`, value, { schedule: AwesomeStorageSchedule.small }),
+  );
+  // 存转化标识key
+  this.setItem(convertedKey, true);
+  // 存cleanCycle时间戳
+  this.setItem(cleanCycleKey, Math.floor(new Date().getTime() / 1000));
+  this.hasConvert = true;
+}
+```
 
 
 
@@ -83,9 +119,10 @@ interface AwesomeStorageItem {
 需要添加项目定期清除storage机制，以及经常访问的storage续期增加存储时间的机制。
 
 -   清除机制
+    -    在项目启动时候，到达了清除事件周期就执行清除
 
 -   续期机制
-
+    - 在getItem时，如果有续期周期则给item时间戳续期
 
 
 
@@ -94,12 +131,18 @@ interface AwesomeStorageItem {
 
 ### 1.   初始化
 
--   可传入白名单列表，包含此这些string的storage不会被自动转换，针对一些sdk内置storage存储的情况：whitelist?: string[];
+-   可传入白名单列表，包含此这些string的storage不会被自动转换，针对一些sdk内置storage存储的情况
+    -   `whitelist?: string[]`
 -   可传入白名单正则列表，匹配这些正则的storage不会被自动转换，针对一些sdk内置storage存储的情况：
-whitelistRegExps?: RegExp[];
+       -  `whitelistRegExps?: RegExp[]`
 
--   可传入项目启动时清除过期storage的周期，默认为10天 ：cleanCycle: number;
+-   可传入项目启动时清除过期storage的周期，默认为10天
+    - `cleanCycle?: number`
+-   可传入workspace，项目的前缀标识，针对同一域名下不同项目使用同一key的情况，可以加上前缀来区别
+
+    - `  workspace?:string `
 -   可传入构造函数localStorage or sessionStorage, 默认是 localStorage
+
 
 ```
 import AwesomeStorage from 'awesome-storage-manage';
@@ -122,7 +165,7 @@ const whitelistRegExps = [
   /tea_cache/,
 ];
 
-const myLocalStorage =  new AwesomeStorage(whitelist, whitelistRegExps，20);
+const myLocalStorage =  new AwesomeStorage(whitelist, whitelistRegExps，20, 'your_own_project');
 ```
 
 
@@ -259,3 +302,6 @@ myLocalStorage.removeItem('xxxx-key-xxxxx')；
 myLocalStorage.clear();
 
 ```
+## 四、npm包
+
+[欢迎使用，已在多个大型业务落地](https://www.npmjs.com/package/awesome-storage-manage)
